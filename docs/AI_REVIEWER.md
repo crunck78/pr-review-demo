@@ -1,73 +1,69 @@
-# AI reviewer: Gemini Code Assist on GitHub
+# AI reviewer: CodeRabbit on GitHub
 
-This repository uses **Gemini Code Assist** as its AI pull request reviewer. It is a GitHub App: once installed, it posts a summary and inline review comments on pull requests.
+This repository uses **CodeRabbit** as its AI pull request reviewer. It is a GitHub App: once installed, it posts a summary and inline review comments on pull requests.
 
-> Product details (pricing, limits, commands, config options) change often. If something below does not match what you see, the official documentation wins: search for "Gemini Code Assist GitHub".
+> Product details (pricing, limits, commands, config options) change often. If something below does not match what you see, the official documentation wins: <https://docs.coderabbit.ai>.
 
 ## 1. Check whether it is already installed
 
-- **Repository settings:** open *Settings → GitHub Apps* (or *Settings → Integrations*). If `gemini-code-assist` is listed, it is installed.
-- **On a pull request:** if `gemini-code-assist[bot]` has commented on recent PRs, it is active.
+- **Account settings:** open <https://github.com/settings/installations> (or the organization's *Settings → GitHub Apps*). If **CodeRabbit** is listed and this repository is in its access list, it is installed.
+- **On a pull request:** if `coderabbitai[bot]` has commented on recent PRs, it is active.
 
 If it is installed, skip to [section 3](#3-use-it-on-a-pull-request).
 
 ## 2. Install it
 
-You need admin rights on the repository (or on the organization that owns it).
+You need owner rights on the repository. Reviews are free for public repositories.
 
-1. Open <https://github.com/apps/gemini-code-assist> and click **Install**. It is also listed in the GitHub Marketplace under "Gemini Code Assist".
-2. Choose the account or organization that owns the repository.
-3. Under **Repository access**, select **Only select repositories** and pick this repository. Avoid granting access to all repositories unless you mean to.
-4. You are redirected to a Google page. Sign in with a Google account, accept the terms and confirm the connection.
-
-The free consumer version is enough for this demo. Organizations that need enterprise controls use the paid version, which is set up through Google Cloud.
+1. Open <https://app.coderabbit.ai/login> and click **Login with GitHub**, then **Authorize coderabbitai**.
+2. Select the account that owns the repository (for a personal repository, your own user name).
+3. Under **Choose repository access**, pick **Only select repositories** and select this repository.
+4. Click **Install & Authorize**.
 
 ## 3. Use it on a pull request
 
-**Automatic review.** For every pull request opened *after* installation, the bot posts:
+**Automatic review.** Every new pull request gets:
 
-1. a summary of the changes, and
-2. a code review with inline comments, each labeled with a severity (critical, high, medium, low).
+1. a summary of the changes (walkthrough), and
+2. a code review with inline comments, many with a ready-to-commit suggested change.
 
-Pull requests that were already open when the app was installed are not reviewed automatically. Trigger them by hand (see below).
+When you push new commits to a reviewed PR, CodeRabbit reviews just those commits automatically.
 
-**Commands.** Post these as a regular comment on the pull request:
+Pull requests that were already open when the app was installed may not be reviewed automatically. Trigger them by hand.
+
+**Commands.** Post one per comment on the pull request, at the start of the comment:
 
 | Command | What it does |
 |---|---|
-| `/gemini review` | Runs a full code review of the current state of the PR |
-| `/gemini summary` | Posts a summary of the PR |
-| `/gemini help` | Lists the available commands |
-| `@gemini-code-assist <question>` | Asks the bot a question, in the PR conversation or as a reply to one of its comments |
+| `@coderabbitai review` | Reviews the commits pushed since its last review |
+| `@coderabbitai full review` | Reviews every file in the PR again from scratch |
+| `@coderabbitai summary` | Regenerates the PR summary |
+| `@coderabbitai pause` / `resume` | Stops / restarts automatic reviews on this PR |
+| `@coderabbitai help` | Lists all commands |
+| `@coderabbitai <question>` | Asks a question, in the PR conversation or as a reply to one of its comments |
 
-A review usually takes a few minutes. Re-run `/gemini review` after you push new commits; it does not re-review every push on its own.
-
-**Treat its comments like any reviewer's.** Apply the useful ones (many come as GitHub *suggested changes* you can commit with one click), reply to or resolve the rest. Some comments will be wrong or irrelevant. The AI review is a first pass, not an approval: a human still reviews and approves before merge.
+**Treat its comments like any reviewer's.** Apply the useful ones, reply to or resolve the rest. Some comments will be wrong or irrelevant. The AI review is a first pass, not an approval: a human still reviews and approves before merge.
 
 ## 4. Give it context (optional)
 
-The bot reads configuration from a `.gemini/` folder at the root of the repository, on the **default branch** (`main`). Changes on a feature branch have no effect until they are merged.
-
-**`.gemini/styleguide.md`**: your team's review rules in plain Markdown, for example "money is always `Decimal`" or "every view that reads an order checks the owner". The bot reviews against these in addition to its general checks. The more specific the rules, the more useful the review.
-
-**`.gemini/config.yaml`**: behavior settings, for example:
+**Team review rules in `.coderabbit.yaml`.** A file at the repository root lets you write review instructions per path, in plain language:
 
 ```yaml
-have_fun: false                    # no poems or jokes in summaries
-code_review:
-  disable: false
-  comment_severity_threshold: MEDIUM   # hide LOW-severity comments
-  max_review_comments: -1              # -1 = no limit
-  pull_request_opened:
-    summary: true
-    code_review: true
-ignore_patterns:
-  - "**/migrations/**"
+reviews:
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        - Money is always `Decimal`, never `float`.
+        - Every view that reads an order checks that it belongs to `request.user`.
 ```
 
-After adding or changing either file on `main`, run `/gemini review` on an open PR to see the effect.
+By default CodeRabbit reads this file from the **pull request's own branch** (for PRs from collaborators), so a rule change takes effect on the PR that contains it. After changing it, run `@coderabbitai full review` to review the whole PR with the new rules.
 
-## 5. Uninstall or pause
+**Existing guideline files.** CodeRabbit also reads common AI instruction files automatically, for example `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.github/copilot-instructions.md`.
 
-- **Pause:** set `code_review.disable: true` in `.gemini/config.yaml`.
-- **Remove:** *Settings → GitHub Apps → gemini-code-assist → Configure*, then remove the repository from its access list or uninstall the app.
+The more specific the rules, the more useful the review.
+
+## 5. Pause or uninstall
+
+- **One PR:** `@coderabbitai pause`, or put `@coderabbitai ignore` in the PR description.
+- **Remove:** <https://github.com/settings/installations> → **CodeRabbit** → **Configure**, then remove the repository from its access list or uninstall the app.
